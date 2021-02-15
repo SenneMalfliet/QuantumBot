@@ -26,7 +26,7 @@ async def on_message(ctx):
 
     if (ctx.content == '/quiz'):
         await ctx.delete()
-        response = requests.get('https://opentdb.com/api.php?amount=1&type=multiple')
+        response = requests.get('https://opentdb.com/api.php?amount=1&category=9&type=multiple')
         response = json.loads(response.content)
         question = unescape(response['results'][0]['question'])
         category = unescape(response['results'][0]['category'])
