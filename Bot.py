@@ -6,6 +6,7 @@ from discord.utils import get
 import json
 import requests
 import random
+from html import unescape
 
 client = commands.Bot(command_prefix=commands.when_mentioned_or("/"))
 key = open('key.txt', 'r').read()
@@ -27,14 +28,14 @@ async def on_message(ctx):
         await ctx.delete()
         response = requests.get('https://opentdb.com/api.php?amount=1&type=multiple')
         response = json.loads(response.content)
-        question = response['results'][0]['question'].replace('&#039;', "'").replace("&quot;", '"')
-        category = response['results'][0]['category'].replace('&#039;', "'").replace("&quot;", '"')
+        question = unescape(response['results'][0]['question'])
+        category = unescape(response['results'][0]['category'])
 
-        correctAnswer = response['results'][0]['correct_answer'].replace('&#039;', "'").replace("&quot;", '"')
+        correctAnswer = unescape(response['results'][0]['correct_answer'])
         incorrectAnswers = response['results'][0]['incorrect_answers']
         answers = [correctAnswer]
         for i in incorrectAnswers:
-            answers.append(i.replace('&#039;', "'").replace("&quot;", '"'))
+            answers.append(unescape(i))
         random.shuffle(answers)
 
         #send message and reactions
