@@ -24,6 +24,9 @@ async def on_message(ctx):
     if ('sigaar' in ctx.content or 'sigaren' in ctx.content):
         await ctx.channel.send(file=discord.File('sigaar.gif'))
 
+    if ('boos' in ctx.content):
+        await ctx.channel.send(file=discord.File('boos.gif'))
+
     if (ctx.content == '/quiz'):
         await ctx.delete()
         response = requests.get('https://opentdb.com/api.php?amount=1&category=9&type=multiple')
