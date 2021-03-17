@@ -90,7 +90,7 @@ async def on_message(ctx):
 
 
 async def akinatorGame(ctx):
-    q = await aki.start_game('nl')
+    q = await aki.start_game('nl', True)
     message = await ctx.channel.send(q)
     await message.add_reaction("\U0001F7E9")
     await message.add_reaction("\U0001F7E7")
