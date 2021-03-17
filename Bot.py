@@ -1,8 +1,8 @@
 import asyncio
 import discord
 from discord.ext import commands
-import requests
-from discord.utils import get
+#import requests
+#from discord.utils import get
 import json
 import requests
 import random
@@ -20,14 +20,14 @@ async def on_ready():
 
 @client.event
 async def on_message(ctx):
-    if (ctx.author.bot): return
-    if ('sigaar' in ctx.content or 'sigaren' in ctx.content):
+    if ctx.author.bot: return
+    if 'sigaar' in ctx.content or 'sigaren' in ctx.content:
         await ctx.channel.send(file=discord.File('sigaar.gif'))
 
-    if ('boos' in ctx.content):
+    if ' boos ' in ctx.content or ctx.content == 'boos' or ctx.content.startswith('boos ') or ctx.content.endswith(' boos') or ctx.content.endswith('boos!') or ctx.content.endswith('boos.'):
         await ctx.channel.send(file=discord.File('boos.gif'))
 
-    if (ctx.content == '/quiz'):
+    if ctx.content == '/quiz':
         await ctx.delete()
         response = requests.get('https://opentdb.com/api.php?amount=1&category=9&type=multiple')
         response = json.loads(response.content)
