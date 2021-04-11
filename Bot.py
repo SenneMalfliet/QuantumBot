@@ -1,18 +1,59 @@
 import asyncio
 import discord
 from discord.ext import commands
-#import requests
-#from discord.utils import get
+from discord.utils import get
 import json
 import requests
 import random
 from html import unescape
 from akinator.async_aki import Akinator
 import akinator
+import youtube_dl
 
 client = commands.Bot(command_prefix=commands.when_mentioned_or("/"))
 key = open('key.txt', 'r').read()
 aki = Akinator()
+
+ytdl_format_options = {
+    'format': 'bestaudio/best',
+    'outtmpl': '%(extractor)s-%(id)s-%(title)s.%(ext)s',
+    'restrictfilenames': True,
+    'noplaylist': True,
+    'nocheckcertificate': True,
+    'ignoreerrors': False,
+    'logtostderr': False,
+    'quiet': True,
+    'no_warnings': True,
+    'default_search': 'auto',
+    'source_address': '0.0.0.0' # bind to ipv4 since ipv6 addresses cause issues sometimes
+}
+ffmpeg_options = {
+    'options': '-vn'
+}
+
+ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
+
+
+class YTDLSource(discord.PCMVolumeTransformer):
+    def __init__(self, source, *, data, volume=0.5):
+        super().__init__(source, volume)
+
+        self.data = data
+
+        self.title = data.get('title')
+        self.url = data.get('url')
+
+    @classmethod
+    async def from_url(cls, url, *, loop=None, stream=False):
+        loop = loop or asyncio.get_event_loop()
+        data = await loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=not stream))
+
+        if 'entries' in data:
+            # take first item from a playlist
+            data = data['entries'][0]
+
+        filename = data['url'] if stream else ytdl.prepare_filename(data)
+        return cls(discord.FFmpegPCMAudio(filename, **ffmpeg_options), data=data)
 
 
 @client.event
@@ -32,6 +73,33 @@ async def on_message(ctx):
 
     if ctx.content == '/akinator':
         await akinatorGame(ctx)
+
+    if ctx.content == '/role':
+        roles = ctx.guild.roles
+        print(roles)
+
+    if ctx.content == '/lofi':
+        channel = ctx.author.voice.channel
+        voice = get(client.voice_clients, guild=ctx.guild)
+
+        if voice and voice.is_connected():
+            await voice.move_to(channel)
+        else:
+            await channel.connect()
+            print(f"The bot has connected to {channel}\n")
+
+            player = await YTDLSource.from_url('https://www.youtube.com/watch?v=5qap5aO4i9A', loop=client.loop, stream=True)
+            ctx.guild.voice_client.play(player, after=lambda e: print(f'Player error: {e}') if e else None)
+
+    if ctx.content == '/leave':
+        channel = ctx.author.voice.channel
+        voice = get(client.voice_clients, guild=ctx.guild)
+
+        if voice and voice.is_connected():
+            await voice.disconnect()
+            print(f"The bot has left {channel}")
+        else:
+            print("Bot was told to leave voice channel, but was not in one")
 
     if ctx.content == '/quiz':
         await ctx.delete()
