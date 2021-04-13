@@ -110,7 +110,7 @@ async def on_message(ctx):
         query = re.sub("/wiki ", "", ctx.content)
         try:
             page = wikipedia.page(query, auto_suggest=True, redirect=True)
-            await ctx.channel.send(page.summary + "\nMeer lezen: <" + page.url + ">")
+            await ctx.channel.send(page.summary[:1900] + "... \nMeer lezen: <" + page.url + ">")
         except DisambiguationError as disambiguation:
             disambiguation_response = "bedoelde je: \n"
             for i in range(len(disambiguation.options)):
@@ -132,7 +132,7 @@ async def on_message(ctx):
                     query = disambiguation.options[emoji_alphabet.index(reaction.emoji)]
                     try:
                         page = wikipedia.page(query, auto_suggest=True, redirect=True)
-                        await ctx.channel.send(page.summary + "\nMeer lezen: <" + page.url + ">")
+                        await ctx.channel.send(page.summary[:1900] + "... \nMeer lezen: <" + page.url + ">")
                     except DisambiguationError or PageError:
                         ctx.channel.send("Er is iets fout gegaan maar het is niet Senne zijn fout, waarschijnlijk is de API van wikipedia weer brak of heeft Ruben weer iets kapot gemaakt.")
         except PageError:
