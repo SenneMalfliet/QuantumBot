@@ -123,7 +123,7 @@ async def on_message(ctx):
                 return user == ctx.author
 
             try:
-                reaction, user = await client.wait_for('reaction_add', timeout=20.0, check=check)  # wachten op reactie voor 200 seconden
+                reaction, user = await client.wait_for('reaction_add', timeout=20.0, check=check)  # wachten op reactie voor 20 seconden
             except asyncio.TimeoutError:
                 await response.delete()
             else:
@@ -134,7 +134,7 @@ async def on_message(ctx):
                         page = wikipedia.page(query, auto_suggest=True, redirect=True)
                         await ctx.channel.send(page.summary[:1900] + "... \nMeer lezen: <" + page.url + ">")
                     except DisambiguationError or PageError:
-                        ctx.channel.send("Er is iets fout gegaan maar het is niet Senne zijn fout, waarschijnlijk is de API van wikipedia weer brak of heeft Ruben weer iets kapot gemaakt.")
+                        await ctx.channel.send("Er is iets fout gegaan maar het is niet Senne zijn fout, waarschijnlijk is de API van wikipedia weer brak of heeft Ruben weer iets kapot gemaakt.")
         except PageError:
             await ctx.channel.send("Geen pagina gevonden met de Titel: " + query)
 
