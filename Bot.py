@@ -9,10 +9,15 @@ from html import unescape
 from akinator.async_aki import Akinator
 import akinator
 import youtube_dl
+import wikipedia
+import re
+from wikipedia import DisambiguationError, PageError
 
 client = commands.Bot(command_prefix=commands.when_mentioned_or("/"))
 key = open('key.txt', 'r').read()
 aki = Akinator()
+wikipedia.set_lang('nl')
+emoji_alphabet = ["🇦", "🇧", "🇨", "🇩", "🇪", "🇫", "🇬", "🇭", "🇮", "🇯", "🇰", "🇱", "🇲", "🇳", "🇴", "🇵", "🇶", "🇷", "🇸", "🇹", "🇺", "🇻", "🇼", "🇽", "🇾", "🇿"]
 
 ytdl_format_options = {
     'format': 'bestaudio/best',
@@ -101,8 +106,39 @@ async def on_message(ctx):
         else:
             print("Bot was told to leave voice channel, but was not in one")
 
+    if ctx.content.startswith('/wiki '):
+        query = re.sub("/wiki ", "", ctx.content)
+        try:
+            page = wikipedia.page(query, auto_suggest=True, redirect=True)
+            await ctx.channel.send(page.summary + "\nMeer lezen: <" + page.url + ">")
+        except DisambiguationError as disambiguation:
+            disambiguation_response = "bedoelde je: \n"
+            for i in range(len(disambiguation.options)):
+                disambiguation_response += emoji_alphabet[i] + disambiguation.options[i] + "\n"
+            response = await ctx.channel.send(disambiguation_response)
+            for i in range(len(disambiguation.options)):
+                await response.add_reaction(emoji_alphabet[i])
+
+            def check(reaction, user):
+                return user == ctx.author
+
+            try:
+                reaction, user = await client.wait_for('reaction_add', timeout=20.0, check=check)  # wachten op reactie voor 200 seconden
+            except asyncio.TimeoutError:
+                await response.delete()
+            else:
+                if reaction.emoji in emoji_alphabet:
+                    await response.delete()
+                    query = disambiguation.options[emoji_alphabet.index(reaction.emoji)]
+                    try:
+                        page = wikipedia.page(query, auto_suggest=True, redirect=True)
+                        await ctx.channel.send(page.summary + "\nMeer lezen: <" + page.url + ">")
+                    except DisambiguationError or PageError:
+                        ctx.channel.send("Er is iets fout gegaan maar het is niet Senne zijn fout, waarschijnlijk is de API van wikipedia weer brak of heeft Ruben weer iets kapot gemaakt.")
+        except PageError:
+            await ctx.channel.send("Geen pagina gevonden met de Titel: " + query)
+
     if ctx.content == '/quiz':
-        await ctx.delete()
         response = requests.get('https://opentdb.com/api.php?amount=1&category=9&type=multiple')
         response = json.loads(response.content)
         question = unescape(response['results'][0]['question'])
@@ -116,46 +152,26 @@ async def on_message(ctx):
         random.shuffle(answers)
 
         #send message and reactions
-        message = await ctx.channel.send(question + "\nCategory: " + category + "\n 🇦: " + answers[0] + "\n 🇧: " + answers[1] + "\n 🇨: " + answers[2] + "\n 🇩: " + answers[3])
-        await message.add_reaction("\U0001F1E6")
-        await message.add_reaction("\U0001F1E7")
-        await message.add_reaction("\U0001F1E8")
-        await message.add_reaction("\U0001F1E9")
+        message = await ctx.channel.send(question + "\n 🇦: " + answers[0] + "\n 🇧: " + answers[1] + "\n 🇨: " + answers[2] + "\n 🇩: " + answers[3])
+        for i in range(4):
+            await message.add_reaction(emoji_alphabet[i])
 
         def check(reaction, user):
             return user == ctx.author
 
         try:
-            reaction, user = await client.wait_for('reaction_add', timeout=10.0, check=check) # wachten op reactie voor 10 seconden
+            reaction, user = await client.wait_for('reaction_add', timeout=15.0, check=check) # wachten op reactie voor 15 seconden
         except asyncio.TimeoutError:
-            await message.channel.send('te laat (binnen de 10 seconden antwoorden)')
+            await message.channel.send('te laat (binnen de 15 seconden antwoorden)')
 
         else:
-            if reaction.emoji == "🇦":
-                if answers[0] == correctAnswer:
+            if reaction.emoji in emoji_alphabet:
+                index = emoji_alphabet.index(reaction.emoji)
+                if answers[index] == correctAnswer:
                     await message.edit(content=message.content + "\n Correct! Het antwoord was inderdaad " + correctAnswer)
                 else:
                     await message.edit(content=message.content + "\n Fout! Het juiste antwoord was " + correctAnswer)
                 await message.clear_reactions()
-            elif reaction.emoji == "🇧":
-                if answers[1] == correctAnswer:
-                    await message.edit(content=message.content + "\n Correct! Het antwoord was inderdaad " + correctAnswer)
-                else:
-                    await message.edit(content=message.content + "\n Fout! Het juiste antwoord was " + correctAnswer)
-                await message.clear_reactions()
-            elif reaction.emoji == "🇨":
-                if answers[2] == correctAnswer:
-                    await message.edit(content=message.content + "\n Correct! Het antwoord was inderdaad " + correctAnswer)
-                else:
-                    await message.edit(content=message.content + "\n Fout! Het juiste antwoord was " + correctAnswer)
-                await message.clear_reactions()
-            elif reaction.emoji == "🇩":
-                if answers[3] == correctAnswer:
-                    await message.edit(content=message.content + "\n Correct! Het antwoord was inderdaad " + correctAnswer)
-                else:
-                    await message.edit(content=message.content + "\n Fout! Het juiste antwoord was " + correctAnswer)
-                await message.clear_reactions()
-
 
 async def akinatorGame(ctx):
     q = await aki.start_game('nl', True)
@@ -173,22 +189,20 @@ async def akinatorGame(ctx):
             reaction, user = await client.wait_for('reaction_add', timeout=60.0, check=check)
         except asyncio.TimeoutError:
             await message.edit(content='niet geantwoord binnen de minuut.')
+            await message.delete()
 
         else:
 
             if reaction.emoji == "🟩": #groen
                 a = "y"
-                await message.remove_reaction(reaction.emoji, user)
             elif reaction.emoji == "🟧": #oranje
                 a = "i"
-                await message.remove_reaction(reaction.emoji, user)
             elif reaction.emoji == "🟥": #rood
                 a = "n"
-                await message.remove_reaction(reaction.emoji, user)
             elif reaction.emoji == "👈": #terug
                 a = "b"
-                await message.remove_reaction(reaction.emoji, user)
 
+            await message.remove_reaction(reaction.emoji, user)
             if a == "b":
                 try:
                     q = await aki.back()
@@ -207,10 +221,8 @@ async def akinatorGame(ctx):
     else:
         if reaction.emoji == "🟩":  # groen
             await message.edit(content=message.content + "\nJoepie!")
-            await message.remove_reaction(reaction.emoji, user)
         elif reaction.emoji == "🟥":  # rood
             await message.edit(content=message.content + "\nJammer... Ik zal volgende keer beter mijn best doen.")
-            await message.remove_reaction(reaction.emoji, user)
         await message.clear_reactions()
 
 
