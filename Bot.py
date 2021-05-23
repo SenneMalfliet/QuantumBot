@@ -1,17 +1,19 @@
 import asyncio
+import json
+import random
+import re
+from html import unescape
+
+import akinator
 import discord
+import requests
+import wikipedia
+import youtube_dl
+from akinator.async_aki import Akinator
 from discord.ext import commands
 from discord.utils import get
-import json
-import requests
-import random
-from html import unescape
-from akinator.async_aki import Akinator
-import akinator
-import youtube_dl
-import wikipedia
-import re
 from wikipedia import DisambiguationError, PageError
+import inspirobot
 
 client = commands.Bot(command_prefix=commands.when_mentioned_or("/"))
 key = open('key.txt', 'r').read()
@@ -64,12 +66,13 @@ class YTDLSource(discord.PCMVolumeTransformer):
 @client.event
 async def on_ready():
     print('Ingelogd als {0.user}'.format(client))
-    await client.change_presence(activity=discord.Streaming(name='Beter dan CoockieBot', url='https://www.youtube.com/watch?v=dQw4w9WgXcQ'))
+    await client.change_presence(activity=discord.Streaming(name='🍑HOT TUB💦SHAMELESS🍑', url='https://www.youtube.com/watch?v=dQw4w9WgXcQ'))
 
 
 @client.event
 async def on_message(ctx):
-    if ctx.author.bot: return
+    ctx.content = ctx.content.lower()
+
     if 'sigaar' in ctx.content or 'sigaren' in ctx.content:
         await ctx.channel.send(file=discord.File('sigaar.gif'))
 
@@ -105,6 +108,9 @@ async def on_message(ctx):
             print(f"The bot has left {channel}")
         else:
             print("Bot was told to leave voice channel, but was not in one")
+
+    if ctx.content == "/inspire" or ctx.content == "/inspireer":
+        await ctx.channel.send(inspirobot.generate())
 
     if ctx.content.startswith('/wiki '):
         query = re.sub("/wiki ", "", ctx.content)
@@ -174,6 +180,7 @@ async def on_message(ctx):
                 await message.clear_reactions()
 
 async def akinatorGame(ctx):
+    global a
     q = await aki.start_game('nl', True)
     message = await ctx.channel.send(q)
     await message.add_reaction("\U0001F7E9")
